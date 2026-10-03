@@ -1,0 +1,30 @@
+name: tests against upstream Hermes
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 19 * * *"   # 03:17 Asia/Taipei — catch an upstream seam change before the host updates
+  workflow_dispatch:
+    inputs:
+      hermes_ref:
+        description: "Hermes ref to test against (branch or tag)"
+        default: main
+
+jobs:
+  fork-plugins:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Install ripgrep (test fixtures shell out to rg)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ripgrep
+      - name: Run tests/fork_plugins against upstream
+        env:
+          HERMES_REF: ${{ github.event.inputs.hermes_ref || 'main' }}
+          HERMES_TEST_WORKERS: "4"
+        run: bash ci/run-against-hermes.sh
