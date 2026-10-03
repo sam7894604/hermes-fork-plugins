@@ -10,6 +10,8 @@ names=()
 for dir in "$HERE"/*/; do
   name="$(basename "$dir")"
   [ "$name" = "platforms" ] && continue
+  # only plugin dirs: a manifest or a dashboard manifest (skips ci/, tests/, .hermes-upstream/ ...)
+  [ -f "$dir/plugin.yaml" ] || [ -f "$dir/plugin.yml" ] || [ -f "$dir/dashboard/manifest.json" ] || continue
   ln -sfn "$dir" "$DEST/$name"
   names+=("$name")
   echo "linked $DEST/$name -> $dir"
