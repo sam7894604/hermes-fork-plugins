@@ -29,6 +29,21 @@ from plugins.platforms.discord import adapter as _base
 logger = logging.getLogger(__name__)
 
 
+def _resolve_component_check_auth():
+    """Upstream's user-or-role check for button clicks. It lived on ``adapter`` until upstream c3f3589efb
+    (2026-10-05) moved it into ``adapter_component_auth``; resolving at call time lets one plugin build
+    serve hosts on either side of that move."""
+    try:
+        from plugins.platforms.discord.adapter_component_auth import _component_check_auth as check
+    except ImportError:
+        return _base._component_check_auth
+    return check
+
+
+def _component_check_auth(interaction, allowed_user_ids, allowed_role_ids) -> bool:
+    return _resolve_component_check_auth()(interaction, allowed_user_ids, allowed_role_ids)
+
+
 def _whitelist_store_class():
     """``WhitelistStore`` from the LINE override plugin: the module the plugin manager already loaded when
     the LINE platform is active in this process (any profile scope), else a path import from the installed
@@ -375,7 +390,7 @@ def _define_fork_view_classes() -> None:
             return f"✅ Confirm ({len(self._selected)} selected)"
 
         def _check_auth(self, interaction) -> bool:
-            return _base._component_check_auth(interaction, self.allowed_user_ids, self.allowed_role_ids)
+            return _component_check_auth(interaction, self.allowed_user_ids, self.allowed_role_ids)
 
         def _make_choice_callback(self, index: int, choice: str):
             async def _callback(interaction):
@@ -491,7 +506,7 @@ def _define_fork_view_classes() -> None:
             self.resolved = False
 
         def _check_auth(self, interaction) -> bool:
-            return _base._component_check_auth(interaction, self.allowed_user_ids, self.allowed_role_ids)
+            return _component_check_auth(interaction, self.allowed_user_ids, self.allowed_role_ids)
 
         @staticmethod
         def _load_store():
